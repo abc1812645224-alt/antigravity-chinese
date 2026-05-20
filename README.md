@@ -20,6 +20,19 @@
 
 ---
 
+## 📸 汉化效果展示 (Screenshots)
+
+<p align="center">
+  <img src="assets/main_interface.png" width="90%" alt="主界面汉化效果"/>
+</p>
+
+<p align="center">
+  <img src="assets/model_selector.png" width="48%" alt="模型选择汉化效果"/>
+  <img src="assets/settings_dialog.png" width="48%" alt="设置菜单汉化效果"/>
+</p>
+
+---
+
 ## 🗺️ 支持平台与工作机制
 
 | 平台 | 目录 | 自动运行机制 | 核心组件 |
