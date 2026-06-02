@@ -2,18 +2,17 @@
 
 这个目录里现在有两套脚本：
 
-- `一键汉化Claude.command`：全自动极速汉化并重签 Claude 桌面端。
-- `一键还原Claude.command`：完美无损恢复为官方纯净未修改版本。
+- `one-click-desktop-zh.command`：汉化截图里的 Claude 桌面端/Cowork 界面。
 - `one-click-install.command`：汉化终端里的 Claude Code 命令行输出。
 
-如果你要汉化桌面端的界面（如 `New task`、`Projects` 等），请使用桌面端脚本。
+如果你要汉化截图里的 `New task`、`Projects`、`How can I help you today?` 这些内容，请使用桌面端脚本。
 
 ## 桌面端一键汉化（全原生）
 
 在 Finder 里双击：
 
 ```text
-一键汉化Claude.command
+one-click-desktop-zh.command
 ```
 
 或者在终端运行：
@@ -22,22 +21,20 @@
 ./patch-desktop.sh
 ```
 
-**汉化特点与硬核逆向原理：**
+**汉化特点与原理：**
 
-- **零后台、性能无损：** 摒弃传统的 CDP 注入守护进程方案，改为 ASAR 静态解包、注入原生 HTML Overlay，实现性能与官方原生完全一致，且无后台守护进程占用。
-- **首创“哈希试运行窃取 (Crash-and-Steal)”技术：** 针对 Electron 30 引入的硬件级 ASAR 完整性哈希校验，由于人工计算头部哈希极难且易错，本脚本会向应用内临时注入诱导哈希，在后台触发底层瞬间崩溃，并动态捕获原生引擎输出的“真实正确哈希值”，自动写回并完成终极校验破解。
-- **攻破苹果移动文件完整性服务 (AMFI)：** 官方原生包含虚拟机相关的高特权功能，而通过本地 Ad-Hoc 重签会被系统直接判定为“证书伪造”而闪退。脚本会自动提取纯净官方权限（Entitlements），自动化精准剥离 `keychain-access-groups` 及 `Team ID` 相关锁定属性，**实现在不弹“损坏”警告的前提下，完美保留截屏、Cowork 等一切原生权限。**
-- **自动突破 macOS 目录锁定保护：** 针对 macOS 的 App Translocation 限制，脚本会自动将应用脱壳拷贝至临时目录处理，完成后原地重签替换。
+- **零后台、性能无损：** 直接修改 Claude Desktop 内置的原生 i18n 语言包（`en-US.json`），不需要在后台运行守护进程或 CDP 调试服务，性能与官方原生完全一致。
+- **自动突破 macOS 目录锁定保护：** 针对 macOS 对 `/Applications` 文件夹的只读和 App Translocation 限制，脚本会自动克隆 App 至 `/tmp` 去除限制，安全注入翻译后自动移回，并清理 Gatekeeper 属性。
 - **安全备份机制：** 首次运行会自动将原始 App 备份为 `/Applications/Claude.app.bak`，完全保留原版洁净状态。
 
-**卸载与恢复官方英文：**
+完成后重新打开 Claude 即可享受中文界面！
 
-在 Finder 里双击 `一键还原Claude.command`，或在终端运行：
+**卸载与恢复官方英文：**
 
 ```bash
 ./patch-desktop.sh --restore
 ```
-*该命令会瞬间用备份的官方原版覆盖当前版本，实现 100% 完美无损恢复。*
+*该命令会瞬间用备份的官方原版 `.bak` 覆盖当前版本，实现 100% 完美无损恢复。*
 
 
 ## 终端 Claude Code 汉化
