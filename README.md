@@ -137,14 +137,6 @@ CLAUDE_ZH_MODE=off claude
 
 这个脚本做的是“终端 UI 短语汉化”，不是对 Claude 回复内容做机器翻译。这样做是为了避免把代码、命令输出、报错栈、测试日志翻译坏。
 
-## 问题与反馈
-
-如果在使用本项目的过程中遇到任何问题，或者有翻译改进建议，欢迎向我反馈修改！
-
-您可以扫码添加我的微信直接反馈：
-
-<img src="assets/wechat_contact.jpg" width="220" />
-
 ## 捐赠与支持
 
 如果你觉得这个汉化项目对你有帮助，欢迎请作者喝杯咖啡！非常感谢你的支持！☕️
@@ -152,4 +144,3 @@ CLAUDE_ZH_MODE=off claude
 | 支付宝 (Alipay) | 微信支付 (WeChat Pay) |
 | :---: | :---: |
 | <img src="assets/alipay.jpg" width="280" /> | <img src="assets/wechat.jpg" width="280" /> |
-

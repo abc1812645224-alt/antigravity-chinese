@@ -440,39 +440,18 @@ print(f"成功注入汉化代码到 {count} 个前端 HTML 文件！")
   npx -y @electron/asar pack "$asar_dir" "$RES_DIR/app.asar" --unpack-dir "node_modules"
   rm -rf "$asar_dir"
   
-  log "正在为 Info.plist 设置诱导校验哈希并剥离 ElectronTeamID..."
-  /usr/libexec/PlistBuddy -c "Set :ElectronAsarIntegrity:Resources/app.asar:hash DUMMY_HASH" "$APP_PATH/Contents/Info.plist" 2>/dev/null || true
-  /usr/libexec/PlistBuddy -c "Delete :ElectronTeamID" "$APP_PATH/Contents/Info.plist" 2>/dev/null || true
+  log "正在更新 Info.plist 中的 ElectronAsarIntegrity 校验哈希..."
+  NEW_HASH=$(shasum -a 256 "$RES_DIR/app.asar" | awk '{print $1}')
+  /usr/libexec/PlistBuddy -c "Set :ElectronAsarIntegrity:Resources/app.asar:hash $NEW_HASH" "$APP_PATH/Contents/Info.plist" || true
+  
+  log "正在移除 Info.plist 中的 ElectronTeamID 以匹配本地 Ad-Hoc 签名..."
+  /usr/libexec/PlistBuddy -c "Delete :ElectronTeamID" "$APP_PATH/Contents/Info.plist" || true
   
   log "前端 HTML 汉化完成！"
   
   log "正在对底层的 C++/Native 依赖库进行独立重签..."
   if [ -d "$RES_DIR/app.asar.unpacked" ]; then
     find "$RES_DIR/app.asar.unpacked" -type f \( -name "*.node" -o -name "spawn-helper" -o -name "*.dylib" \) -exec codesign --force --sign - {} \;
-  fi
-  
-  log "正在提取并净化 Entitlements..."
-  codesign -d --entitlements :- "$ORIG_APP_PATH" > /tmp/claude_entitlements.plist 2>/dev/null || true
-  /usr/libexec/PlistBuddy -c "Delete :com.apple.application-identifier" /tmp/claude_entitlements.plist 2>/dev/null || true
-  /usr/libexec/PlistBuddy -c "Delete :com.apple.developer.team-identifier" /tmp/claude_entitlements.plist 2>/dev/null || true
-  /usr/libexec/PlistBuddy -c "Delete :keychain-access-groups" /tmp/claude_entitlements.plist 2>/dev/null || true
-  
-  log "正在执行试运行以窃取真实的 ASAR Integrity 哈希值..."
-  codesign --force --deep --sign - --entitlements /tmp/claude_entitlements.plist "$APP_PATH" 2>/dev/null || true
-  
-  # 执行试运行并捕获报错中的真实哈希
-  CRASH_LOG=$("$APP_PATH/Contents/MacOS/Claude" 2>&1 || true)
-  CORRECT_HASH=$(echo "$CRASH_LOG" | grep -o "vs [a-f0-9]*)" | sed 's/vs \([a-f0-9]*\))/\1/')
-  
-  if [ -n "$CORRECT_HASH" ]; then
-    log "成功窃取到原生内部校验哈希: $CORRECT_HASH"
-    /usr/libexec/PlistBuddy -c "Set :ElectronAsarIntegrity:Resources/app.asar:hash $CORRECT_HASH" "$APP_PATH/Contents/Info.plist" 2>/dev/null || true
-    
-    log "正在进行最终的本地代码重签..."
-    codesign --force --deep --sign - --entitlements /tmp/claude_entitlements.plist "$APP_PATH" 2>/dev/null || true
-  else
-    log "警告: 未能提取出真实的内部哈希，跳过自动修复。应用可能会闪退。"
-    echo "详细日志: $CRASH_LOG"
   fi
   
   log "补丁完成。请完全退出并重新打开 Claude。"
@@ -500,7 +479,28 @@ else
   quit_claude
   patch
   if [ "$USE_TMP" = true ]; then
-    # 签名和权限处理已经在 patch 函数中完美完成，此处直接跳过
+    log "正在提取原始 Entitlements 以保留系统权限（如 Cowork 虚拟机）..."
+    codesign -d --entitlements :- "$ORIG_APP_PATH" > /tmp/claude_entitlements.plist 2>/dev/null || true
+    
+    # 移除与 Apple 开发者账号强绑定的 Team ID 校验，避免本地重签被系统认定为伪造签名而闪退
+    /usr/libexec/PlistBuddy -c "Delete :com.apple.application-identifier" /tmp/claude_entitlements.plist 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Delete :com.apple.developer.team-identifier" /tmp/claude_entitlements.plist 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Delete :keychain-access-groups" /tmp/claude_entitlements.plist 2>/dev/null || true
+    
+    log "正在进行本地代码签名重签，以规避 macOS 损坏与沙箱签名警告..."
+    if [ -s /tmp/claude_entitlements.plist ]; then
+      if ! codesign --force --deep --sign - --entitlements /tmp/claude_entitlements.plist "$APP_PATH" 2>/dev/null; then
+        log "警告: 本地代码重签失败，请确认系统已安装 Xcode Command Line Tools。"
+      else
+        log "代码重签成功（已完美保留所有权限）！"
+      fi
+    else
+      if ! codesign --force --deep --sign - "$APP_PATH" 2>/dev/null; then
+        log "警告: 本地代码重签失败，请确认系统已安装 Xcode Command Line Tools。"
+      else
+        log "代码重签成功！"
+      fi
+    fi
 
     log "正在备份原始 Claude.app 为 ${ORIG_APP_PATH}.bak..."
     if [ ! -d "${ORIG_APP_PATH}.bak" ]; then
