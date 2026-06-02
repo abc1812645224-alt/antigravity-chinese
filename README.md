@@ -1,138 +1,146 @@
-# 🌌 Antigravity IDE 最新版中文汉化（Antigravity Chinese Patch）
+# Claude macOS 汉化脚本
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Platform: macOS / Windows](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-brightgreen.svg)]()
-[![Node.js: >=22](https://img.shields.io/badge/Node.js-%3E%3D22-orange.svg)](https://nodejs.org/)
-[![Target: Antigravity IDE](https://img.shields.io/badge/Target-Antigravity%20IDE-purple.svg)](https://antigravity.google/)
+这个目录里现在有两套脚本：
 
-这是一个面向 **Google 5 月 19 日新发布的 Antigravity IDE / Antigravity 2.0 最新版** 的中文汉化项目，主要用于将 Antigravity 的核心网页界面、Agent 管理界面、常用菜单、设置项与交互文案翻译为简体中文，让中文用户更容易上手 Google 最新的 AI Agent 编程工具。
+- `one-click-desktop-zh.command`：汉化截图里的 Claude 桌面端/Cowork 界面。
+- `one-click-install.command`：汉化终端里的 Claude Code 命令行输出。
 
-Antigravity 是 Google 推出的新一代 AI 编程平台，最新版更强调 **Agent-first** 工作流，围绕桌面端、CLI、SDK 与多 Agent 任务管理构建开发体验。本项目专注于为最新版 Antigravity IDE 提供轻量、可停用、易恢复的中文本地化方案。
+如果你要汉化截图里的 `New task`、`Projects`、`How can I help you today?` 这些内容，请使用桌面端脚本。
 
-> [!IMPORTANT]
-> 本项目为社区汉化项目，非 Google 官方项目。汉化内容会尽量适配最新版 Antigravity IDE，但由于 Antigravity 更新频率较高，部分新界面或新文案可能暂时保留英文，欢迎提交 Issue 或 PR 补充词条。
+## 桌面端一键汉化（全原生）
 
-> [!NOTE]
-> **注入式汉化技术**：本工具采用轻量化注入方案，通过客户端本机调试端口动态向窗口内注入中文词表，不破解、不反编译、不修改客户端二进制本体文件。安装后可后台自动运行，也可以一键停用或卸载。
+在 Finder 里双击：
 
----
-
-## ✨ 核心特性
-
-- 🧩 **适配新版 Antigravity IDE**：面向 5 月 19 日发布后的新版 Antigravity / Antigravity 2.0 使用场景整理中文词表。
-- 🤖 **覆盖 Agent 相关界面**：重点汉化 Agent 管理、任务状态、模型选择、设置弹窗、常用操作按钮等界面文案。
-- 🛡️ **安全非侵入**：不破解、不修改 Antigravity 客户端二进制本体文件，降低更新损坏风险。
-- ⚡ **轻量且智能**：基于 Node.js 驱动，配合系统原生守护机制（macOS LaunchAgent / Windows 计划任务），开机自启，后台静默运行。
-- 🔄 **实时界面同步**：动态监听客户端窗口加载，尽量覆盖核心 UI 菜单与文案。
-- 🎨 **绿色易卸载**：提供全自动的一键卸载脚本，清理干净无残留。
-
----
-
-## 📸 汉化效果展示 (Screenshots)
-
-<p align="center">
-  <img src="assets/main_interface.png" width="90%" alt="主界面汉化效果"/>
-</p>
-
-<p align="center">
-  <img src="assets/model_selector.png" width="48%" alt="模型选择汉化效果"/>
-  <img src="assets/settings_dialog.png" width="48%" alt="设置菜单汉化效果"/>
-</p>
-
----
-
-## 🗺️ 支持平台与工作机制
-
-| 平台 | 目录 | 自动运行机制 | 核心组件 |
-| :--- | :--- | :--- | :--- |
-| **macOS** | [`mac/`](./mac) | `LaunchAgent` 用户级后台常驻守护进程 | `install.sh`, `uninstall.sh` |
-| **Windows** | [`win/`](./win) | `计划任务 (Task Scheduler)` 开机登录自启 | `install.ps1`, `uninstall.ps1` |
-
----
-
-## 🚀 快速开始
-
-### 准备工作
-
-在使用汉化工具前，请确保满足以下依赖：
-
-1. **已安装最新版 Antigravity IDE** 客户端。
-2. **已安装 Node.js 22** 或更高版本。
-
-```bash
-node -v
+```text
+one-click-desktop-zh.command
 ```
----
-可以直接喂给 antigravity 或者其他 ai 直接使用，
-一键复制使用
+
+或者在终端运行：
+
 ```bash
-https://github.com/kdczyz/antigravity-chinese 帮我执行这个汉化项目
+./patch-desktop.sh
 ```
----
 
-### 💻 macOS 安装与使用
-1. 打开终端，进入 `mac` 目录。
-2. 授予脚本执行权限并运行安装：
+**汉化特点与原理：**
+
+- **零后台、性能无损：** 直接修改 Claude Desktop 内置的原生 i18n 语言包（`en-US.json`），不需要在后台运行守护进程或 CDP 调试服务，性能与官方原生完全一致。
+- **自动突破 macOS 目录锁定保护：** 针对 macOS 对 `/Applications` 文件夹的只读和 App Translocation 限制，脚本会自动克隆 App 至 `/tmp` 去除限制，安全注入翻译后自动移回，并清理 Gatekeeper 属性。
+- **安全备份机制：** 首次运行会自动将原始 App 备份为 `/Applications/Claude.app.bak`，完全保留原版洁净状态。
+
+完成后重新打开 Claude 即可享受中文界面！
+
+**卸载与恢复官方英文：**
 
 ```bash
-cd mac
-chmod +x install.sh uninstall.sh bin/antigravity-zh-patch.js
+./patch-desktop.sh --restore
+```
+*该命令会瞬间用备份的官方原版 `.bak` 覆盖当前版本，实现 100% 完美无损恢复。*
+
+
+## 终端 Claude Code 汉化
+
+下面这套只负责终端里的 `claude`/`claude-zh`，不影响桌面 App。
+
+```bash
+chmod +x ./install.sh
 ./install.sh
 ```
 
-3. **停用或卸载**：
+默认会：
+
+- 自动探测真实 Claude Code 路径。
+- 安装到 `~/.claude-zh`。
+- 提供 `claude-zh` 命令。
+- 在 `~/.claude-zh/bin` 里放一个 `claude` 影子命令。
+- 给 `~/.zshrc` 和 `~/.bash_profile` 添加 PATH 配置块。
+
+重新打开终端后运行：
 
 ```bash
-./uninstall.sh
+claude-zh
 ```
 
----
+如果保留默认 shadow 模式，也可以直接运行：
 
-### 🔌 Windows 安装与使用
-
-1. 以管理员权限运行 PowerShell，进入 `win` 目录。
-2. （首次运行）允许脚本执行策略：
-
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```bash
+claude
 ```
 
-3. 运行安装脚本：
+## 常用选项
 
-```powershell
-cd win
-.\install.ps1
+```bash
+./install.sh --no-shadow
 ```
 
-4. **停用或卸载**：
+只安装 `claude-zh`，不让 `claude` 指向汉化包装层。
 
-```powershell
-.\uninstall.ps1
+```bash
+./install.sh --no-shellrc
 ```
 
----
+不修改 shell 配置文件，适合手动管理 PATH。
 
-## 📂 项目结构
+```bash
+./install.sh --real /opt/homebrew/bin/claude
+```
+
+手动指定真实 Claude Code 可执行文件。
+
+```bash
+./install.sh --status
+```
+
+查看真实 Claude 路径、当前 PATH 和 Python 3 状态。
+
+```bash
+./install.sh --uninstall
+```
+
+卸载并清理写入 `~/.zshrc`、`~/.bash_profile` 的 PATH 配置块。
+
+## 自定义词典
+
+词典文件在：
 
 ```text
-antigravity-chinese/
-├── mac/                            # macOS 平台专属目录
-│   ├── bin/antigravity-zh-patch.js # macOS 汉化核心逻辑
-│   ├── install.sh                  # 全自动 LaunchAgent 注册脚本
-│   └── uninstall.sh                # 卸载与清理守护进程脚本
-├── win/                            # Windows 平台专属目录
-│   ├── bin/antigravity-zh-patch.js # Windows 汉化核心逻辑
-│   ├── install.ps1                 # 创建登录自启计划任务脚本
-│   └── uninstall.ps1               # 停用并清理计划任务脚本
-└── README.md                       # 本说明文件
+~/.claude-zh/dictionary.tsv
 ```
 
----
+格式是：
 
-## ⚠️ 已知限制与注意事项
+```text
+英文短语<TAB>中文短语
+```
 
-> [!WARNING]
-> - **动态内容不强制翻译**：历史对话标题、模型输出的原始文本、用户输入内容不会被翻译，以保留原始交互内容。
-> - **客户端更新兼容**：当 Antigravity 官方客户端大幅升级 UI 布局或引入新文案时，可能会出现短暂英文残留。欢迎提交 Issue 或 PR 补充中文词表。
-> - **系统级外观限制**：macOS 顶部菜单栏与系统状态栏属于系统原生组件，不在脚本网页端注入处理范围内。
-> - **非官方项目声明**：本项目仅用于学习、交流与本地化体验优化，不代表 Google 官方立场。
+只建议加入 Claude Code UI 固定短语，不建议加入过短的通用词，比如 `Run`、`File`、`Yes`。过短词容易误伤 Claude 输出的代码、日志或测试结果。
+
+## 临时关闭汉化
+
+```bash
+CLAUDE_ZH_MODE=off claude-zh
+```
+
+如果默认 shadow 模式已启用：
+
+```bash
+CLAUDE_ZH_MODE=off claude
+```
+
+## 兼容性说明
+
+- macOS Apple Silicon 和 Intel 都可用。
+- 支持官方安装脚本、Homebrew cask、npm 全局安装等常见路径。
+- Claude Code 现在可能是原生二进制，直接补丁会破坏签名、升级和安全边界，所以此方案默认不修改官方文件。
+- 包装层需要 `python3` 才能在交互式 PTY 中做汉化。找不到 `python3` 时会自动退回原版 Claude Code，不影响使用。
+
+## 设计边界
+
+这个脚本做的是“终端 UI 短语汉化”，不是对 Claude 回复内容做机器翻译。这样做是为了避免把代码、命令输出、报错栈、测试日志翻译坏。
+
+## 捐赠与支持
+
+如果你觉得这个汉化项目对你有帮助，欢迎请作者喝杯咖啡！非常感谢你的支持！☕️
+
+| 支付宝 (Alipay) | 微信支付 (WeChat Pay) |
+| :---: | :---: |
+| <img src="assets/alipay.jpg" width="280" /> | <img src="assets/wechat.jpg" width="280" /> |
