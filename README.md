@@ -65,7 +65,7 @@ node -v
 ---
 可以直接将下边内容复制给 antigravity 使用汉化
 ```bash
-帮我执行https://github.com/kdczyz/antigravity-chinese这个项目的汉化
+帮我执行https://github.com/kdczyz/antigravity-chinese这个项目的汉化，并配置开机自启动防止掉后台后台
 ```
 ---
 
