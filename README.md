@@ -62,7 +62,11 @@ Antigravity 是 Google 推出的新一代 AI 编程平台，最新版更强调 *
 ```bash
 node -v
 ```
-
+---
+可以直接将下边内容复制给 antigravity 使用汉化
+```bash
+帮我执行https://github.com/kdczyz/antigravity-chinese这个项目的汉化
+```
 ---
 
 ### 💻 macOS 安装与使用
