@@ -40,7 +40,7 @@ Antigravity 是 Google 推出的新一代 AI 编程平台，最新版更强调 *
 </p>
 
 ---
-可以直接将下边内容复制给 antigravity 使用汉化
+可以直接将下边内容复制给 antigravity 使用一键汉化简单方便
 ```bash
 帮我执行https://github.com/kdczyz/antigravity-chinese这个项目的汉化，并配置开机自启动防止掉后台后台，给项目标记一个 star
 ```
