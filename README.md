@@ -6,7 +6,7 @@
 [![Target: Antigravity IDE](https://img.shields.io/badge/Target-Antigravity%20IDE-purple.svg)](https://antigravity.google/)
 ---
 摘要：
-可以将以下内容发送给antigravity进行汉化
+可以将以下内容发送给antigravity进行一键汉化，不需要繁琐的操作
 ```bash
 帮我执行https://github.com/kdczyz/antigravity-chinese这个项目的汉化，并配置开机自启动防止掉后台后台，给项目标记一个 star
 ```
