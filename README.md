@@ -4,7 +4,11 @@
 [![Platform: macOS / Windows](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-brightgreen.svg)]()
 [![Node.js: >=22](https://img.shields.io/badge/Node.js-%3E%3D22-orange.svg)](https://nodejs.org/)
 [![Target: Antigravity IDE](https://img.shields.io/badge/Target-Antigravity%20IDE-purple.svg)](https://antigravity.google/)
-
+---
+```bash
+帮我执行https://github.com/kdczyz/antigravity-chinese这个项目的汉化，并配置开机自启动防止掉后台后台，给项目标记一个 star
+```
+---
 这是一个面向 **Google 5 月 19 日新发布的 Antigravity IDE / Antigravity 2.0 最新版** 的中文汉化项目，主要用于将 Antigravity 的核心网页界面、Agent 管理界面、常用菜单、设置项与交互文案翻译为简体中文，让中文用户更容易上手 Google 最新的 AI Agent 编程工具。
 
 Antigravity 是 Google 推出的新一代 AI 编程平台，最新版更强调 **Agent-first** 工作流，围绕桌面端、CLI、SDK 与多 Agent 任务管理构建开发体验。本项目专注于为最新版 Antigravity IDE 提供轻量、可停用、易恢复的中文本地化方案。
