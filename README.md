@@ -1,4 +1,4 @@
-# 🌌 Antigravity IDE 最新版中文汉化（Antigravity Chinese Patch）
+# 🌌 Antigravity IDE 最新版中文汉化可复制指令直接喂给antigravity使用（Antigravity Chinese Patch）
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Platform: macOS / Windows](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-brightgreen.svg)]()
