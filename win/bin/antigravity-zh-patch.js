@@ -5,8 +5,8 @@ const { execFileSync, spawn } = require('child_process');
 
 const overlaySource = String.raw`
 (() => {
-  if (window.__antigravityZhPatchInstalled === 8) return;
-  window.__antigravityZhPatchInstalled = 8;
+  if (window.__antigravityZhPatchInstalled === 9) return;
+  window.__antigravityZhPatchInstalled = 9;
 
   const phrases = new Map([
     ['New Conversation', '新建对话'],
@@ -573,28 +573,25 @@ const overlaySource = String.raw`
     run();
   }
 
-  // Feature: Select text to translate
+  // Feature: Inline Select-to-Translate
   let translateBtn = null;
-  let translatePopup = null;
 
   document.addEventListener('mouseup', (e) => {
     setTimeout(() => {
       const selection = window.getSelection();
       const text = selection ? selection.toString().trim() : '';
       
-      if (!text) {
+      if (!text || !/[A-Za-z]/.test(text)) {
         if (translateBtn) translateBtn.style.display = 'none';
         return;
       }
       
-      if (translatePopup && translatePopup.contains(e.target)) return;
       if (translateBtn && translateBtn.contains(e.target)) return;
-      if (!/[A-Za-z]/.test(text)) return;
 
       if (!translateBtn) {
         translateBtn = document.createElement('div');
         translateBtn.innerHTML = '译';
-        translateBtn.style.cssText = 'position:fixed;z-index:9999999;background:#3b82f6;color:white;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:12px;box-shadow:0 2px 5px rgba(0,0,0,0.2);user-select:none;font-weight:bold;font-family:sans-serif;';
+        translateBtn.style.cssText = 'position:fixed;z-index:9999999;background:#10b981;color:white;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:12px;box-shadow:0 2px 5px rgba(0,0,0,0.2);user-select:none;font-weight:bold;font-family:sans-serif;';
         document.body.appendChild(translateBtn);
         
         translateBtn.addEventListener('mousedown', async (ev) => {
@@ -602,7 +599,9 @@ const overlaySource = String.raw`
           ev.stopPropagation();
           
           const sel = window.getSelection();
-          const selectedText = sel ? sel.toString().trim() : '';
+          if (!sel.rangeCount) return;
+          const range = sel.getRangeAt(0);
+          const selectedText = sel.toString().trim();
           if (!selectedText) return;
           
           translateBtn.innerHTML = '...';
@@ -633,23 +632,20 @@ const overlaySource = String.raw`
           
           translateBtn.style.display = 'none';
           
-          if (!translatePopup) {
-            translatePopup = document.createElement('div');
-            translatePopup.style.cssText = 'position:fixed;z-index:9999999;background:#1e293b;color:#f8fafc;padding:12px 16px;border-radius:6px;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,0.4);max-width:350px;word-wrap:break-word;line-height:1.5;border:1px solid #334155;';
-            document.body.appendChild(translatePopup);
+          if (translated && !translated.startsWith('翻译失败') && !translated.startsWith('翻译接口连接超时')) {
+            const span = document.createElement('span');
+            span.className = 'antigravity-inline-translation';
+            span.style.cssText = 'background-color: rgba(16, 185, 129, 0.2); color: #059669; border-bottom: 1px dashed #10b981; cursor: pointer; padding: 0 4px; border-radius: 4px; font-weight: bold; transition: all 0.2s;';
+            span.dataset.original = selectedText;
+            span.textContent = translated;
+            span.title = "点击还原为英文";
+            
+            try {
+              range.deleteContents();
+              range.insertNode(span);
+              sel.removeAllRanges();
+            } catch(e) {}
           }
-          translatePopup.innerText = translated;
-          
-          let posX = ev.clientX + 10;
-          let posY = ev.clientY + 10;
-          translatePopup.style.display = 'block';
-          
-          const rect = translatePopup.getBoundingClientRect();
-          if (posX + rect.width > window.innerWidth) posX = window.innerWidth - rect.width - 10;
-          if (posY + rect.height > window.innerHeight) posY = window.innerHeight - rect.height - 10;
-          
-          translatePopup.style.left = posX + 'px';
-          translatePopup.style.top = posY + 'px';
         });
       }
       
@@ -661,11 +657,17 @@ const overlaySource = String.raw`
   });
 
   document.addEventListener('mousedown', (e) => {
-    if (translatePopup && !translatePopup.contains(e.target)) {
-      translatePopup.style.display = 'none';
-    }
     if (translateBtn && !translateBtn.contains(e.target)) {
       translateBtn.style.display = 'none';
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    const span = e.target.closest('.antigravity-inline-translation');
+    if (span && span.dataset.original) {
+      const originalText = span.dataset.original;
+      const textNode = document.createTextNode(originalText);
+      span.parentNode.replaceChild(textNode, span);
     }
   });
 
