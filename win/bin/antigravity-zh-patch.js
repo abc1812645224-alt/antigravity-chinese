@@ -756,11 +756,52 @@ async function injectOnce() {
   return count;
 }
 
+const activeConnections = new Map();
+
 async function watch() {
   if (!isAntigravityRunning()) launchAntigravity();
   for (;;) {
-    await injectOnce().catch(() => {});
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    try {
+      const activeIds = new Set();
+      for (const port of debugPorts()) {
+        const targets = await targetsForPort(port);
+        for (const target of targets) {
+          activeIds.add(target.id);
+          if (!activeConnections.has(target.id)) {
+            const ws = new WebSocket(target.webSocketDebuggerUrl);
+            activeConnections.set(target.id, ws);
+            
+            ws.onopen = async () => {
+              try {
+                await cdpCall(ws, 'Page.addScriptToEvaluateOnNewDocument', { source: overlaySource });
+                await cdpCall(ws, 'Runtime.evaluate', { expression: overlaySource, awaitPromise: false });
+              } catch (err) {
+                // ignore
+              }
+            };
+            
+            ws.onclose = () => {
+              activeConnections.delete(target.id);
+            };
+            
+            ws.onerror = () => {
+              ws.close();
+              activeConnections.delete(target.id);
+            };
+          }
+        }
+      }
+      
+      for (const [id, ws] of activeConnections) {
+        if (!activeIds.has(id)) {
+          ws.close();
+          activeConnections.delete(id);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 }
 
