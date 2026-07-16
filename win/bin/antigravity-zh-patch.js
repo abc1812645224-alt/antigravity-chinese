@@ -5,8 +5,8 @@ const { execFileSync, spawn } = require('child_process');
 
 const overlaySource = String.raw`
 (() => {
-  if (window.__antigravityZhPatchInstalled === 7) return;
-  window.__antigravityZhPatchInstalled = 7;
+  if (window.__antigravityZhPatchInstalled === 8) return;
+  window.__antigravityZhPatchInstalled = 8;
 
   const phrases = new Map([
     ['New Conversation', '新建对话'],
@@ -572,6 +572,103 @@ const overlaySource = String.raw`
   } else {
     run();
   }
+
+  // Feature: Select text to translate
+  let translateBtn = null;
+  let translatePopup = null;
+
+  document.addEventListener('mouseup', (e) => {
+    setTimeout(() => {
+      const selection = window.getSelection();
+      const text = selection ? selection.toString().trim() : '';
+      
+      if (!text) {
+        if (translateBtn) translateBtn.style.display = 'none';
+        return;
+      }
+      
+      if (translatePopup && translatePopup.contains(e.target)) return;
+      if (translateBtn && translateBtn.contains(e.target)) return;
+      if (!/[A-Za-z]/.test(text)) return;
+
+      if (!translateBtn) {
+        translateBtn = document.createElement('div');
+        translateBtn.innerHTML = '译';
+        translateBtn.style.cssText = 'position:fixed;z-index:9999999;background:#3b82f6;color:white;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:12px;box-shadow:0 2px 5px rgba(0,0,0,0.2);user-select:none;font-weight:bold;font-family:sans-serif;';
+        document.body.appendChild(translateBtn);
+        
+        translateBtn.addEventListener('mousedown', async (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          
+          const sel = window.getSelection();
+          const selectedText = sel ? sel.toString().trim() : '';
+          if (!selectedText) return;
+          
+          translateBtn.innerHTML = '...';
+          
+          let translated = '';
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000);
+            const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=' + encodeURIComponent(selectedText);
+            const res = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            const data = await res.json();
+            translated = data[0].map(x => x[0]).join('');
+          } catch (err) {
+            try {
+              const url2 = 'https://api.mymemory.translated.net/get?langpair=en|zh&q=' + encodeURIComponent(selectedText);
+              const res2 = await fetch(url2, { signal: AbortSignal.timeout(3000) });
+              const data2 = await res2.json();
+              if (data2 && data2.responseData && data2.responseData.translatedText) {
+                translated = data2.responseData.translatedText;
+              } else {
+                translated = '翻译失败，请检查网络。';
+              }
+            } catch (err2) {
+              translated = '翻译接口连接超时（尝试使用外网或重试）。';
+            }
+          }
+          
+          translateBtn.style.display = 'none';
+          
+          if (!translatePopup) {
+            translatePopup = document.createElement('div');
+            translatePopup.style.cssText = 'position:fixed;z-index:9999999;background:#1e293b;color:#f8fafc;padding:12px 16px;border-radius:6px;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,0.4);max-width:350px;word-wrap:break-word;line-height:1.5;border:1px solid #334155;';
+            document.body.appendChild(translatePopup);
+          }
+          translatePopup.innerText = translated;
+          
+          let posX = ev.clientX + 10;
+          let posY = ev.clientY + 10;
+          translatePopup.style.display = 'block';
+          
+          const rect = translatePopup.getBoundingClientRect();
+          if (posX + rect.width > window.innerWidth) posX = window.innerWidth - rect.width - 10;
+          if (posY + rect.height > window.innerHeight) posY = window.innerHeight - rect.height - 10;
+          
+          translatePopup.style.left = posX + 'px';
+          translatePopup.style.top = posY + 'px';
+        });
+      }
+      
+      translateBtn.style.left = (e.clientX + 5) + 'px';
+      translateBtn.style.top = (e.clientY - 25) + 'px';
+      translateBtn.style.display = 'block';
+      translateBtn.innerHTML = '译';
+    }, 10);
+  });
+
+  document.addEventListener('mousedown', (e) => {
+    if (translatePopup && !translatePopup.contains(e.target)) {
+      translatePopup.style.display = 'none';
+    }
+    if (translateBtn && !translateBtn.contains(e.target)) {
+      translateBtn.style.display = 'none';
+    }
+  });
+
 })();
 `;
 
