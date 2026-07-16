@@ -634,63 +634,61 @@ const overlaySource = String.raw`
 })();
 `;
 
-function runPowerShell(command) {
+// Lightweight native process detection (avoids heavy PowerShell spawns)
+function antigravityPids() {
   try {
-    return execFileSync('powershell.exe', [
-      '-NoProfile',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-Command',
-      command,
-    ], { encoding: 'utf8', windowsHide: true });
+    const output = execFileSync('tasklist.exe', ['/nh', '/fi', 'imagename eq Antigravity.exe'], { encoding: 'utf8', windowsHide: true });
+    const pids = [];
+    for (const line of output.split('\n')) {
+      const parts = line.trim().split(/\s+/);
+      if (parts[0] && parts[0].toLowerCase() === 'antigravity.exe') {
+        const pid = Number(parts[1]);
+        if (Number.isInteger(pid) && pid > 0) pids.push(pid);
+      }
+    }
+    return pids;
   } catch {
-    return '';
+    return [];
   }
 }
 
-function antigravityPids() {
-  const output = runPowerShell('Get-Process -Name Antigravity -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id');
-  return output.trim().split(/\s+/).filter(Boolean);
-}
-
 function launchAntigravity() {
-  const command = [
-    '$paths = @(',
-    '  "$env:LOCALAPPDATA\\Programs\\Antigravity\\Antigravity.exe",',
-    '  "$env:LOCALAPPDATA\\Antigravity\\Antigravity.exe",',
-    '  "$env:ProgramFiles\\Antigravity\\Antigravity.exe",',
-    '  "${env:ProgramFiles(x86)}\\Antigravity\\Antigravity.exe"',
-    ');',
-    '$target = $paths | Where-Object { Test-Path $_ } | Select-Object -First 1;',
-    'if ($target) { Start-Process -FilePath $target } else { Start-Process Antigravity }',
-  ].join('\n');
-
+  const candidates = [
+    `${process.env.LOCALAPPDATA}\\Programs\\Antigravity\\Antigravity.exe`,
+    `${process.env.LOCALAPPDATA}\\Antigravity\\Antigravity.exe`,
+    `${process.env.ProgramFiles}\\Antigravity\\Antigravity.exe`,
+  ];
+  const { existsSync } = require('fs');
+  const target = candidates.find(p => existsSync(p)) || 'Antigravity';
   try {
-    spawn('powershell.exe', [
-      '-NoProfile',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-Command',
-      command,
-    ], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+    spawn(target, [], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
   } catch {
+    // Fallback: try shell start
+    try { execFileSync('cmd.exe', ['/c', 'start', '', 'Antigravity'], { windowsHide: true }); } catch {}
   }
 }
 
 function debugPorts() {
+  const pids = new Set(antigravityPids());
+  if (pids.size === 0) return [];
   const ports = new Set();
-  for (const pid of antigravityPids()) {
-    const command = [
-      `Get-NetTCPConnection -State Listen -OwningProcess ${pid} -ErrorAction SilentlyContinue |`,
-      "Where-Object { $_.LocalAddress -eq '127.0.0.1' -or $_.LocalAddress -eq '0.0.0.0' -or $_.LocalAddress -eq '::1' } |",
-      'Select-Object -ExpandProperty LocalPort',
-    ].join(' ');
-    const output = runPowerShell(command);
-    for (const value of output.trim().split(/\s+/).filter(Boolean)) {
-      const port = Number(value);
-      if (Number.isInteger(port)) ports.add(port);
+  try {
+    const output = execFileSync('netstat.exe', ['-ano'], { encoding: 'utf8', windowsHide: true });
+    for (const line of output.split('\n')) {
+      const parts = line.trim().split(/\s+/);
+      if (parts.length < 5) continue;
+      if (parts[0].toUpperCase() !== 'TCP') continue;
+      if (parts[3] !== 'LISTENING') continue;
+      const pid = Number(parts[4]);
+      if (!pids.has(pid)) continue;
+      const localAddr = parts[1];
+      const colonIndex = localAddr.lastIndexOf(':');
+      if (colonIndex !== -1) {
+        const port = Number(localAddr.slice(colonIndex + 1));
+        if (Number.isInteger(port) && port > 0) ports.add(port);
+      }
     }
-  }
+  } catch {}
   return [...ports];
 }
 
@@ -761,6 +759,19 @@ const activeConnections = new Map();
 async function watch() {
   if (!isAntigravityRunning()) launchAntigravity();
   for (;;) {
+    const running = isAntigravityRunning();
+
+    if (!running) {
+      // 客户端已关闭：清理所有连接，进入省电长休眠（5秒一次轻检测）
+      for (const [id, ws] of activeConnections) {
+        try { ws.close(); } catch {}
+        activeConnections.delete(id);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      continue;
+    }
+
+    // 客户端运行中：维持常驻连接，快速扫描（2秒）
     try {
       const activeIds = new Set();
       for (const port of debugPorts()) {
@@ -770,37 +781,29 @@ async function watch() {
           if (!activeConnections.has(target.id)) {
             const ws = new WebSocket(target.webSocketDebuggerUrl);
             activeConnections.set(target.id, ws);
-            
+
             ws.onopen = async () => {
               try {
                 await cdpCall(ws, 'Page.addScriptToEvaluateOnNewDocument', { source: overlaySource });
                 await cdpCall(ws, 'Runtime.evaluate', { expression: overlaySource, awaitPromise: false });
-              } catch (err) {
-                // ignore
-              }
+              } catch {}
             };
-            
-            ws.onclose = () => {
-              activeConnections.delete(target.id);
-            };
-            
-            ws.onerror = () => {
-              ws.close();
-              activeConnections.delete(target.id);
-            };
+
+            ws.onclose = () => { activeConnections.delete(target.id); };
+            ws.onerror = () => { try { ws.close(); } catch {} activeConnections.delete(target.id); };
           }
         }
       }
-      
+
+      // 清理已关闭的页面连接
       for (const [id, ws] of activeConnections) {
         if (!activeIds.has(id)) {
-          ws.close();
+          try { ws.close(); } catch {}
           activeConnections.delete(id);
         }
       }
-    } catch (e) {
-      // ignore
-    }
+    } catch {}
+
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 }
