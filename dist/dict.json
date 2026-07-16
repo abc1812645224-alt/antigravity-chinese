@@ -299,5 +299,12 @@
   "Read URLs": "读取 URL",
   "Allow/deny agent access to read specific URLs.": "允许/拒绝 Agent 读取特定 URL 的权限。",
   "Write Files": "写入文件",
-  "Read Files": "读取文件"
+  "Read Files": "读取文件",
+  "Uses global settings when working in this project.": "在此项目中工作时使用全局设置。",
+  "Requires manual review for all terminal commands and file accesses outside of the working folders.": "工作文件夹外的所有终端命令和文件访问都需要手动审查。",
+  "Full machine": "全机权限 (Full machine)",
+  "All terminal commands require review. The agent can read or write to any file in the machine.": "所有终端命令都需要审查。Agent 可以读取或写入机器中的任何文件。",
+  "Turbo mode": "极速模式 (Turbo)",
+  "Disables all safety barriers for maximal iteration velocity.": "禁用所有安全屏障，以实现最快的迭代速度。",
+  "Manually customize individual settings.": "手动自定义各个设置。"
 }
