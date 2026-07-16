@@ -5,8 +5,8 @@ const { execFileSync, spawn } = require('child_process');
 
 const overlaySource = String.raw`
 (() => {
-  if (window.__antigravityZhPatchInstalled === 9) return;
-  window.__antigravityZhPatchInstalled = 9;
+  if (window.__antigravityZhPatchInstalled === 10) return;
+  window.__antigravityZhPatchInstalled = 10;
 
   const phrases = new Map([
     ['New Conversation', '新建对话'],
@@ -28,6 +28,10 @@ const overlaySource = String.raw`
     ['Search conversations (by name or Cascade ID)', '搜索对话（按名称或 Cascade ID）'],
     ['Search all convos...', '搜索全部对话...'],
     ['Search by name or Cascade ID...', '按名称或 Cascade ID 搜索...'],
+    ['Weekly Limit', '每周额度'],
+    ['Five Hour Limit', '五小时额度'],
+    ['Claude and GPT models', 'Claude 和 GPT 模型'],
+    ['Within each group, models share a weekly limit and a 5-hour limit. Quota is consumed proportionally to the cost of the tokens. Thus, limits will last longer with shorter tasks or using more cost-effective models. The 5-hour limit smooths out aggregate demand to fairly distribute global capacity across all users, while your weekly limit is tied directly to your individual tier.', '在每个组内，模型共享每周额度和 5 小时额度。额度消耗与 Token 成本成正比。因此，处理较短的任务或使用更具成本效益的模型，能让额度使用更久。5 小时额度用于平滑总需求，在所有用户间公平分配全球算力；而您的每周额度则直接与您的个人等级挂钩。'],
     ['Mark as Read', '标记为已读'],
     ['Mark as Unread', '标记为未读'],
     ['Mark As Read', '标记为已读'],
@@ -402,6 +406,7 @@ const overlaySource = String.raw`
     ['Walkthrough', '演练指南'],
     ['Uploads', '上传的文件'],
     ['Working...', '工作中...'],
+    ['You have hit your limit.', '您已达到额度上限。'],
   ]);
 
   const patterns = [
@@ -411,6 +416,16 @@ const overlaySource = String.raw`
     [/^(\d+)d$/g, '$1天'],
     [/^(\d+)m$/g, '$1分钟'],
     [/^(\d+)s$/g, '$1秒'],
+    [/(\d+) days/g, '$1 天'],
+    [/(\d+) day/g, '$1 天'],
+    [/(\d+) hours/g, '$1 小时'],
+    [/(\d+) hour/g, '$1 小时'],
+    [/(\d+) minutes/g, '$1 分钟'],
+    [/(\d+) minute/g, '$1 分钟'],
+    [/You have used some of your weekly limit, it will fully refresh in (.*?)\./g, '您已使用部分每周额度，它将在 $1 后完全刷新。'],
+    [/You have used some of your 5-hour limit, it will fully refresh in (.*?)\./g, '您已使用部分五小时额度，它将在 $1 后完全刷新。'],
+    [/You have hit your 5-hour limit, so the weekly limit does not currently apply\. Your 5-hour limit will refresh in (.*?)\./g, '您已达到五小时额度上限，目前每周额度不适用。您的五小时额度将在 $1 后刷新。'],
+    [/You have hit your 5-hour limit, it will refresh in (.*?)\. If on a supported paid plan, you can use AI credits in the interim\./g, '您已达到五小时额度上限，它将在 $1 后刷新。如果您有支持的付费计划，期间可使用 AI Credits 积分。'],
     [/Worked for (\d+)s/g, '已工作 $1 秒'],
     [/浏览器 设置/g, '浏览器设置'],
     [/浏览器 操作权限/g, '浏览器操作权限'],
