@@ -501,44 +501,10 @@ const overlaySource = String.raw`
 
   function shouldSkip(node) {
     const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-    return !!element?.closest?.('script, style, textarea, code, pre, .xterm, .monaco-editor');
+    return !!element?.closest?.('script, style, textarea, code, pre, .xterm, .monaco-editor, [contenteditable="true"]');
   }
 
-  const translationCache = new Map();
 
-  async function translateOnline(text) {
-    if (translationCache.has(text)) return translationCache.get(text);
-    
-    // 1. Try Google Translate first (works globally, but blocked in China)
-    try {
-      const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=' + encodeURIComponent(text);
-      const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
-      const data = await res.json();
-      if (data && data[0]) {
-        const translated = data[0].map(x => x[0]).join('');
-        translationCache.set(text, translated);
-        return translated;
-      }
-    } catch (e) {
-      // Google Translate failed (probably due to firewall in China or timeout)
-    }
-
-    // 2. Fall back to MyMemory Translate (works in China and globally)
-    try {
-      const url = 'https://api.mymemory.translated.net/get?langpair=en|zh&q=' + encodeURIComponent(text);
-      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
-      const data = await res.json();
-      if (data && data.responseData && data.responseData.translatedText) {
-        const translated = data.responseData.translatedText;
-        translationCache.set(text, translated);
-        return translated;
-      }
-    } catch (e) {
-      // MyMemory also failed
-    }
-
-    return text;
-  }
 
   function translateElement(element) {
     for (const attr of ['aria-label', 'title', 'placeholder', 'alt']) {
@@ -547,14 +513,6 @@ const overlaySource = String.raw`
       const translated = translate(value);
       if (translated !== value) {
         element.setAttribute(attr, translated);
-      } else {
-        if (/[A-Za-z]/.test(value) && value.includes(' ') && value.length > 5 && !/[\u4e00-\u9fa5]/.test(value)) {
-          translateOnline(value).then((onlineVal) => {
-            if (onlineVal && onlineVal !== value && element.getAttribute?.(attr) === value) {
-              element.setAttribute(attr, onlineVal);
-            }
-          });
-        }
       }
     }
   }
@@ -567,14 +525,6 @@ const overlaySource = String.raw`
       const translated = translate(val);
       if (translated !== val) {
         root.nodeValue = translated;
-      } else {
-        if (/[A-Za-z]/.test(val) && val.includes(' ') && val.length > 5 && !/[\u4e00-\u9fa5]/.test(val)) {
-          translateOnline(val).then((onlineVal) => {
-            if (onlineVal && onlineVal !== val && root.nodeValue === val) {
-              root.nodeValue = onlineVal;
-            }
-          });
-        }
       }
       return;
     }
@@ -588,15 +538,6 @@ const overlaySource = String.raw`
         const translated = translate(val);
         if (translated !== val) {
           node.nodeValue = translated;
-        } else {
-          if (/[A-Za-z]/.test(val) && val.includes(' ') && val.length > 5 && !/[\u4e00-\u9fa5]/.test(val)) {
-            const targetNode = node;
-            translateOnline(val).then((onlineVal) => {
-              if (onlineVal && onlineVal !== val && targetNode.nodeValue === val) {
-                targetNode.nodeValue = onlineVal;
-              }
-            });
-          }
         }
       } else if (node.nodeType === Node.ELEMENT_NODE) {
         translateElement(node);
