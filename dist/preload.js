@@ -284,6 +284,54 @@
         btn.style.display = 'none';
       });
     });
+
+    // 🌟 核心新功能：一键翻译（Shift + 双击段落） 🌟
+    document.addEventListener('dblclick', function(e) {
+      if (!e.shiftKey) return; // 只有按住 Shift 键双击才触发
+      
+      var el = e.target;
+      // 往上找直到找到包含有效文本的块级元素
+      while(el && el !== document.body && !el.textContent.trim()) {
+        el = el.parentElement;
+      }
+      if (!el || el === document.body) return;
+
+      var text = el.textContent.trim();
+      if (!text || !/[a-zA-Z]/.test(text)) return;
+      
+      // 防止重复翻译
+      if (el.classList.contains('ag-translated-block')) {
+        el.textContent = el.dataset.orig;
+        el.classList.remove('ag-translated-block');
+        el.style.borderLeft = '';
+        el.style.paddingLeft = '';
+        el.style.backgroundColor = '';
+        return;
+      }
+
+      var origBg = el.style.backgroundColor;
+      el.style.backgroundColor = 'rgba(31,111,235,0.1)';
+      
+      fetchTranslation(text).then(function(translated) {
+        if (translated && translated !== text) {
+          el.dataset.orig = text;
+          el.dataset.origBg = origBg;
+          el.classList.add('ag-translated-block');
+          el.textContent = translated;
+          el.style.borderLeft = '3px solid #58a6ff';
+          el.style.paddingLeft = '10px';
+          el.style.backgroundColor = 'rgba(31,111,235,0.05)';
+          el.title = '已翻译 · 再次 Shift+双击 还原原文';
+        } else {
+          el.style.backgroundColor = origBg;
+        }
+      }).catch(function() {
+        el.style.backgroundColor = origBg;
+      });
+      
+      // 清除可能产生的选中状态
+      window.getSelection().removeAllRanges();
+    });
   }
 
   /* ─────────────────────────────────────────────
