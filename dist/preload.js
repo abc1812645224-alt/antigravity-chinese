@@ -262,15 +262,19 @@
       'transition:opacity 0.2s,transform 0.2s;'
     );
     
+    var hideTimeout = null;
     container.onmouseenter = function () { 
+      clearTimeout(hideTimeout);
       btn.style.opacity = '1'; 
       btn.style.transform = 'scale(1.05)'; 
       menu.style.display = 'flex';
     };
     container.onmouseleave = function () { 
-      btn.style.opacity = '0.85'; 
-      btn.style.transform = 'scale(1)'; 
-      menu.style.display = 'none';
+      hideTimeout = setTimeout(function() {
+        btn.style.opacity = '0.85'; 
+        btn.style.transform = 'scale(1)'; 
+        menu.style.display = 'none';
+      }, 300);
     };
     
     btn.onclick = function () {
