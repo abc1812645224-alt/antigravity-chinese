@@ -508,9 +508,11 @@ const overlaySource = String.raw`
 
   async function translateOnline(text) {
     if (translationCache.has(text)) return translationCache.get(text);
+    
+    // 1. Try Google Translate first (works globally, but blocked in China)
     try {
       const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=' + encodeURIComponent(text);
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
       const data = await res.json();
       if (data && data[0]) {
         const translated = data[0].map(x => x[0]).join('');
@@ -518,8 +520,23 @@ const overlaySource = String.raw`
         return translated;
       }
     } catch (e) {
-      // ignore network errors
+      // Google Translate failed (probably due to firewall in China or timeout)
     }
+
+    // 2. Fall back to MyMemory Translate (works in China and globally)
+    try {
+      const url = 'https://api.mymemory.translated.net/get?langpair=en|zh&q=' + encodeURIComponent(text);
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+      const data = await res.json();
+      if (data && data.responseData && data.responseData.translatedText) {
+        const translated = data.responseData.translatedText;
+        translationCache.set(text, translated);
+        return translated;
+      }
+    } catch (e) {
+      // MyMemory also failed
+    }
+
     return text;
   }
 
