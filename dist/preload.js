@@ -150,29 +150,138 @@
      7. TOGGLE BUTTON  中 / EN
   ───────────────────────────────────────────── */
   function injectToggle() {
-    if (document.getElementById('ag-toggle-btn')) return;
+    if (document.getElementById('ag-toggle-container')) return;
+    
+    var container = document.createElement('div');
+    container.id = 'ag-toggle-container';
+    container.setAttribute('style', 'position:fixed;bottom:20px;right:20px;z-index:2147483647;font-family:system-ui,-apple-system,sans-serif;');
+    
+    var menu = document.createElement('div');
+    menu.id = 'ag-hover-menu';
+    menu.setAttribute('style', 'position:absolute;bottom:50px;right:0;background:#fff;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);display:none;flex-direction:column;min-width:140px;overflow:hidden;border:1px solid rgba(0,0,0,0.1);');
+    
+    var btnTranslate = document.createElement('div');
+    btnTranslate.textContent = '🤖 一键翻译页面长文';
+    btnTranslate.setAttribute('style', 'padding:10px 15px;font-size:13px;color:#333;cursor:pointer;user-select:none;border-bottom:1px solid #eee;background:#fff;transition:background 0.2s;');
+    btnTranslate.onmouseenter = function() { this.style.background = '#f0f0f0'; };
+    btnTranslate.onmouseleave = function() { this.style.background = '#fff'; };
+    
+    btnTranslate.onclick = function() {
+      var details = document.querySelectorAll('details');
+      var paras = document.querySelectorAll('p, .prose div, .message-content div');
+      var allNodes = Array.prototype.slice.call(details).concat(Array.prototype.slice.call(paras));
+      var targetNodes = [];
+      
+      allNodes.forEach(function(d) {
+        var walker = document.createTreeWalker(d, NodeFilter.SHOW_TEXT, null, false);
+        var node;
+        while (node = walker.nextNode()) {
+          var val = node.nodeValue.trim();
+          if (val !== '' && val.length > 5 && /[a-zA-Z]/.test(val)) {
+            var parent = node.parentElement;
+            if (parent && parent.tagName !== 'SCRIPT' && parent.tagName !== 'STYLE' && parent.tagName !== 'A' && parent.tagName !== 'CODE') {
+               if (targetNodes.indexOf(parent) === -1 && !parent.classList.contains('ag-translated-block')) {
+                 targetNodes.push(parent);
+               }
+            }
+          }
+        }
+      });
+      
+      if (targetNodes.length === 0) {
+        alert('当前没有发现需要翻译的英文长文或思考过程。');
+        return;
+      }
+      
+      var oldText = btnTranslate.textContent;
+      btnTranslate.textContent = '⏳ 正在拼命翻译中...';
+      btnTranslate.style.pointerEvents = 'none';
+      
+      var promises = targetNodes.map(function(el) {
+        var text = el.textContent.trim();
+        var origBg = el.style.backgroundColor;
+        el.style.backgroundColor = 'rgba(31,111,235,0.1)';
+        
+        return fetchTranslation(text).then(function(translated) {
+          if (translated && translated !== text) {
+            el.dataset.orig = text;
+            el.dataset.origBg = origBg || '';
+            el.classList.add('ag-translated-block');
+            el.textContent = translated;
+            el.style.borderLeft = '3px solid #58a6ff';
+            el.style.paddingLeft = '10px';
+            el.style.backgroundColor = 'rgba(31,111,235,0.05)';
+            el.title = '已翻译 · 再次 Shift+双击 还原原文';
+          } else {
+            el.style.backgroundColor = origBg;
+          }
+        }).catch(function() {
+          el.style.backgroundColor = origBg;
+        });
+      });
+      
+      Promise.all(promises).then(function() {
+        btnTranslate.textContent = oldText;
+        btnTranslate.style.pointerEvents = 'auto';
+      });
+    };
+
+    var btnRestore = document.createElement('div');
+    btnRestore.textContent = '↩️ 一键还原全部翻译';
+    btnRestore.setAttribute('style', 'padding:10px 15px;font-size:13px;color:#333;cursor:pointer;user-select:none;background:#fff;transition:background 0.2s;');
+    btnRestore.onmouseenter = function() { this.style.background = '#f0f0f0'; };
+    btnRestore.onmouseleave = function() { this.style.background = '#fff'; };
+    
+    btnRestore.onclick = function() {
+      var translated = document.querySelectorAll('.ag-translated-block');
+      translated.forEach(function(el) {
+        if (el.dataset.orig) {
+          el.textContent = el.dataset.orig;
+          el.classList.remove('ag-translated-block');
+          el.style.borderLeft = '';
+          el.style.paddingLeft = '';
+          el.style.backgroundColor = el.dataset.origBg || '';
+        }
+      });
+    };
+    
+    menu.appendChild(btnTranslate);
+    menu.appendChild(btnRestore);
+    
     var btn = document.createElement('div');
     btn.id = 'ag-toggle-btn';
     btn.textContent = translationOn ? '中' : 'EN';
-    btn.title = translationOn ? '点击关闭汉化，恢复英文' : '点击开启汉化';
+    btn.title = translationOn ? '点击关闭全局界面汉化，恢复英文' : '点击开启全局界面汉化';
     btn.setAttribute('style',
-      'position:fixed;bottom:20px;right:20px;width:40px;height:40px;' +
+      'width:40px;height:40px;' +
       'border-radius:50%;background:' + (translationOn ? '#2ea043' : '#6e7681') + ';' +
       'color:#fff;font-size:13px;font-weight:700;' +
-      'font-family:system-ui,-apple-system,sans-serif;' +
       'display:flex;align-items:center;justify-content:center;' +
       'cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.35);' +
-      'z-index:2147483647;user-select:none;opacity:0.82;' +
-      'transition:opacity 0.18s,transform 0.15s;'
+      'user-select:none;opacity:0.85;' +
+      'transition:opacity 0.2s,transform 0.2s;'
     );
-    btn.onmouseenter = function () { btn.style.opacity = '1'; btn.style.transform = 'scale(1.1)'; };
-    btn.onmouseleave = function () { btn.style.opacity = '0.82'; btn.style.transform = 'scale(1)'; };
+    
+    container.onmouseenter = function () { 
+      btn.style.opacity = '1'; 
+      btn.style.transform = 'scale(1.05)'; 
+      menu.style.display = 'flex';
+    };
+    container.onmouseleave = function () { 
+      btn.style.opacity = '0.85'; 
+      btn.style.transform = 'scale(1)'; 
+      menu.style.display = 'none';
+    };
+    
     btn.onclick = function () {
       if (translationOn) { stopObserver(); }
       localStorage.setItem(STORAGE_KEY, translationOn ? 'false' : 'true');
       window.location.reload();
     };
-    document.body.appendChild(btn);
+    
+    container.appendChild(menu);
+    container.appendChild(btn);
+    document.body.appendChild(container);
   }
 
   /* ─────────────────────────────────────────────
