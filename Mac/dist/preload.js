@@ -451,6 +451,14 @@
         txt = txt.replace("executing the Node script to inject the new translations into dict.json", "执行 Node 脚本以注入新翻译到 dict.json");
         changed = true;
       }
+      if (txt.includes("Thought for ")) {
+        txt = txt.replace(/Thought for ([\d.]+[ms]+)/g, "思考耗时 $1");
+        changed = true;
+      }
+      if (txt.includes("QUERY LENGTH LIMIT EXCEEDED")) {
+        txt = txt.replace(/QUERY LENGTH LIMIT EXCEEDED\. MAX ALLOWED QUERY : (\d+) CHARS/g, "查询长度超限。允许的最大查询长度 : $1 字符");
+        changed = true;
+      }
       
       if (changed && node.nodeValue !== txt) {
         node.nodeValue = txt;
